@@ -1,0 +1,49 @@
+Requerimientos minimos{
+    * Organizacion de las palabras en categorias[
+        - Almacenadas en arreglos de strings (al menos 3)
+        - Leer un archivo externo y utilizarlas funciones {fopen,fclose, fprintf,fscanf }
+    ]
+    * Implementar niveles de dificultad[
+        - Errores permitidos => 8 errores en lvl 1 a 3 errores en lvl maximo
+        - Longitud de las palabras => la elige el usuario, al menos 2 caracteres
+    ]
+    * Actualizar la figura por error[
+        - Mostrar con caracteres ASCII el estado de las vidas graficamente, se completa el personaje
+    ]
+    * Control de caracteres ingresados[
+        - Almacenar los caracteres ingresados e indicar al jugador si los repite
+    ]
+    * Incremento de dificultad[
+        - Si el usuario acierta al menos 2 palabras consecutivas y sigue jugando aumentar en 1 la dificultad 
+    ]
+}
+
+Gestion de Jugadores y estadisticas{
+    * Registrar jugadores[
+        - Registrar en una lista los datos de los jugadores (nombre, partidas jugadas, ganadas, perdidas, racha actual y racha máxima)
+    ]
+    * Guardar y cargar estadisticas[
+        - Leer, cargar y guardar archivos => funciones {fopen,fclose, fprintf,fscanf }
+    ]
+    * Agregar palabras a categorias existentes[
+        - El jugador puede añadir palabras a una categoria ya existente - debemos generar un archivo con las categorias y palabras estandars
+    ]
+}
+
+Funcionalidades opcionales (plus de puntos){
+    * Multijugador[
+        - Implementacion de modo de juego donde un jugador ingresa palabras y el otro adivina
+    ]
+    * Ranking[
+        - Mostrar el ranking de las mejores rachas maximas
+    ]
+}
+
+TIP{
+    * Manejo de strings[
+        - Para el manejo de strings en C se recomienda usar las funciones de string.h (strlen, strcpy, strcmp, etc.)
+    ]
+    * Arreglos cargados desde archivos[
+        - Prestar especial atención a los límites de los arreglos al cargar palabras desde archivos
+    ]
+}

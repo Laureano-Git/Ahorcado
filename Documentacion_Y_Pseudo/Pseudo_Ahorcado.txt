@@ -1,0 +1,39 @@
+Importacion de librerias
+Importacion de modulos
+
+InicioPrograma{
+    Inicializo variables globales
+    Inicializo variables flags
+    Do{
+        Muestro "1 Single player"
+        Muestro "2 Multiplayer"
+        Muestro "3 Ver estadisticas"
+        Muestro "4 Agregar palabras"
+        Muestro "0 para salir"
+        Leer menu
+        Casos{
+            menu=1{
+                Llamo al procedimiento SinglePlayer()
+            }
+            menu=2{
+                Llamo al procedimiento Multiplayer()
+            }
+            menu=3{
+                Llamo al procedimiento VerEstadisticas()
+            }
+            menu=4{
+                Llamo al procedimiento AgregarPalabra()
+            }
+            menu=0{
+                Muestro mensaje preguntando si quiere salir
+                SI respuesta = Y or respuesta = y
+                    option=0
+                SI respuesta != Y or respuesta != y and respuesta != N or respuesta != n
+                    Muestro mensaje indicando error
+            }
+            menu=default{
+                Muestro mensaje de eleccion Erronea en el menu
+            }
+        }
+    }Mientras(option != 0)
+}FinPrograma

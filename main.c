@@ -5,7 +5,6 @@ main(){
     int option=1, menu;
     char flag;
     do{
-        printf("Hola");
         printf("Ingrese opcion: ");
         scanf("%d", &menu);
         switch (menu){

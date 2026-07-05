@@ -1,0 +1,224 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+//Constantes define
+#define MAX_PALABRA 30 //Significa que cada palabra puede tener hasta
+#define MAX_NOMBRE 30 //Es el tamaño máximo del nombre del jugador.
+#define MAX_PALABRAS 100 //Cada categoría podrá almacenar hasta 100 palabras
+#define MAX_LETRAS 26 //La usaremos para guardar las letras ingresadas.
+#define CANT_CATEGORIAS 3 //Cantidad de categorias
+#define MAX_LINEA 100 //Cantidad maxima de lineas
+
+//Structs
+//Jugador:
+typedef struct Jugador{ //Usamos typedef para poder usar el alias "Jugador" más adelante
+    char nombre[MAX_NOMBRE];
+
+    int jugadas;
+
+    int ganadas;
+
+    int perdidas;
+
+    int rachaActual;
+
+    int rachaMaxima;
+
+    struct Jugador *sig; //Se convierte el registro en un nodo de una lista enlazada
+
+}Jugador;
+//Categorias:
+typedef struct Categoria{
+    char nombre[20];
+    char palabras[MAX_PALABRAS][MAX_PALABRA];
+    int cantidad;
+} Categoria;
+
+//Protitipos
+//Procedimiento cargar jugadores
+void cargarJugadores(Jugador **listaJugadores); //Paso el puntero por referencia para modificarlo
+//Procedimiento guardar jugadores
+void guardarJugadores(Jugador *listaJugadores); //Paso el puntero por copia ya que no lo voy a modificar
+//Procedimiento cargar palabras
+void cargarPalabras(Categoria categorias[]); //Paso el arreglo de categorias por referencia 
+//Procedimiento agregar palabras
+void agregarPalabra(Categoria categorias[]); //Paso el arreglo de categorias por referencia
+//Funcuion elegir jugador
+Jugador *elegirJugador(Jugador **listaJugadores); //Paso el puntero por referencia
+//Funcion elegir categoría
+int elegirCategoria(Categoria categorias[]); //Paso la lista de categoria y retornara una posición (palabra elegida)
+//Funcion elegir dificultad
+int elegirDificultad(); //No se pasa parametro, únicamente retornara la dificultad elegida
+//Funcion elegir palabra
+char *seleccionarPalabra(Categoria categorias[], int categoria, int dificultad); //Retorna un puntero a Categorias en base a la categoria elegida y la dificultad
+//Procedimiento para la logia del ahorcado
+void jugar(Jugador *jugador, Categoria categorias[], int dificultad); //Se le pasa todo por copia ya que este procedimiento no modifica, es la logica del juego
+//Procedimiento del dibujo
+void dibujarAhorcado(int errores); //Se pasa por copia
+//Procedimiento del ranking
+void mostrarRanking(Jugador *listaJugadores); //Se pasa por copia la cabeza de la lista
+//Procedimiento para mostrar jugadores
+void mostrarJugadores(Jugador *listaJugadores); //Se pasa por copia la cabeza de la lista
+//Procedimiento para liberar memoria
+void liberarLista(Jugador **listaJugadores); //Se pasa por referencia la cabeza de la lista
+//Procedimiento para mantener limpio el buffer
+void limpiarBuffer(); //No se pasa parametro, únicamente limpia el buffer con un getchar
+//Procedimiento para inicializar las categorias
+void inicializarCategorias(Categoria categorias[]); //Se pasa por referencia el arreglo
+
+//Cuerpo del programa
+int main(){
+    Jugador *listaJugadores = NULL; //Creamos el puntero "listaJugadores" que apunta al primer nodo de la lista enlazada, primero en Null sin jugadores
+    //Categorias
+    Categoria categorias[CANT_CATEGORIAS];
+    //Variables flag
+    int opcion;//Para el Menu
+    int categoriaElegida;//Para Categoria
+    int dificultad;//Para Dificultad
+    //Inicializo 3 categorias y sus cantidades de palabras
+    inicializarCategorias(categorias);
+    //Inicializacion de numeros aleatorios
+    srand(time(NULL)); //Usa la hora actual como semilla para generar secuencias de numeros aleatorios cada vez que se ejecuta el programa entonces no repite secuencias, el rand() genera secuencias random en base a la misma semilla entonces cada ejecucion creara la misma secuencia random
+    //Carga de los archivos
+    /* Aquí se cargarán los jugadores */
+
+    /* Aquí se cargarán las palabras */
+    do{
+        printf("\n");
+        printf("===== JUEGO DEL AHORCADO =====\n");
+        printf("1. Jugar\n");
+        printf("2. Agregar palabra\n");
+        printf("3. Mostrar ranking\n");
+        printf("4. Mostrar jugadores\n");
+        printf("5. Salir\n");
+        printf("Seleccione una opcion: ");
+        scanf("%d",&opcion);
+        limpiarBuffer();
+        switch(opcion){
+        case 1:
+            break;
+        case 2:
+            break;
+        case 3:
+            break;
+        case 4:
+            break;
+        case 5:
+            printf("Gracias por jugar.\n");
+            break;
+        default:
+            printf("Opcion incorrecta.\n");
+        }
+    }while(opcion != 5);
+    return 0;
+}
+
+void limpiarBuffer(){
+    while(getchar() != '\n');
+}
+
+void inicializarCategorias(Categoria categorias[]){
+    char nombres[CANT_CATEGORIAS][20] ={
+        "Animales",
+        "Paises",
+        "Tecnologia"
+    };
+    int i;
+    for(i = 0; i < CANT_CATEGORIAS; i++){
+        strcpy(categorias[i].nombre,nombres[i]);
+        categorias[i].cantidad = 0;
+    }
+}
+
+void cargarPalabras(Categoria categorias[]){
+    FILE *archivo; //FILE es una funcio de stdio.h para un archivo abierto
+    int i; //Declaracion de variable para recorrer las categorias
+    char archivos[CANT_CATEGORIAS][20] = 
+    {"animales.txt",
+    "paises.txt",
+    "tecnologia.txt"};
+
+    for(i = 0; i < CANT_CATEGORIAS; i++){
+        archivo = fopen(archivos[i],"r"); //fopen, es FILE OPEN y recibe 2 parametros, primero el nombre y despues "r" que significa LECTURA
+        if(archivo == NULL){ //fopen devuelve NULL si no encontro el archivo o no lo recibio
+            printf("No se pudo abrir %s\n", archivos[i]);
+            continue; //El "continue" es para que continue a la siguiente iteracion del for, ya que no me interesa que continue en esta iteracion 
+        }
+        while(categorias[i].cantidad < MAX_PALABRAS && fscanf(archivo,"%29s",categorias[i].palabras[categorias[i].cantidad]) == 1){ //fscanf lee del archivo con un maximo de 29 posiciones de string porque la ultima(pos 30) es "/0", el fscanf retorna 1 si encuentra algo, sino retorna 0 y deja de añadir cantida de palabras a cantidad de esa categoria o si alcanzo las 100 palabras esa categoria(MAX_PALABRAS)
+            categorias[i].cantidad++;
+        }
+        fclose(archivo); //fclose cierra el archivo que reciba como parametro
+    }
+}
+
+void cargarJugadores(Jugador **listaJugadores){
+    FILE *archivo;
+    Jugador *nuevo;
+    archivo = fopen("jugadores.txt", "r");
+    if (archivo == NULL){
+        return;
+    }
+    char linea[MAX_LINEA];
+    while (fgets(linea, sizeof(linea), archivo) != NULL){ //fgets a diferencia de fscanf lee la linea completa y retorna un puntero, sino encuentra nada retorna NULL
+        nuevo = (Jugador *)malloc(sizeof(Jugador)); //Reservamos en memoria una cantidad de espacio suficiente para que entre Jugador
+        sscanf(linea,"%29s[^;];%d;%d;%d;%d;%d", nuevo->nombre, &nuevo->jugadas, &nuevo->ganadas, &nuevo->perdidas, &nuevo->rachaActual, &nuevo->rachaMaxima);//De la cadena lee en el formato de maximo 29 caracteres mientras no haya ";", luego espera un entero y otro y otro sucesivamente. Le asigna al puntero (porque es un arreglo de caracteres) nombre el nombre y los demás se pasa con "&" para su direccion donde guardarlo
+        nuevo->sig = NULL; //El puntero de nuevo apunta a NULL
+        if (sscanf(linea, "%29[^;];%d;%d;%d;%d;%d", nuevo->nombre, &nuevo->jugadas, &nuevo->ganadas, &nuevo->perdidas, &nuevo->rachaActual, &nuevo->rachaMaxima) == 6){ //Verificacion que el sscanf retorna 6 campos, ni mas ni menos, evitando asi datos corruptos
+            nuevo->sig = *listaJugadores; //El puntero de nuevo apunta a la cabeza de la lista
+            *listaJugadores = nuevo; //La cabeza de la lista es igual a nuevo, ahora inserte el nodo Nuevo como cabeza de la lista
+        }else{
+            free(nuevo); //Libera el espacio en memoria reservado con malloc
+        }
+            if (nuevo == NULL){ //comprobacion que el malloc no falle
+            fclose(archivo);
+            return;
+        }
+    }
+    fclose(archivo);
+}
+
+void guardarJugadores(Jugador *listaJugadores){
+    FILE *archivo;
+    Jugador *actual; //actual es un puntero auxiliar para recorrer la lista enlazada y asi no perder la cabeza de la lista
+    archivo = fopen("jugadores.txt","w"); //fopen, es FILE OPEN y recibe 2 parametros, primero el nombre y despues "w" que significa ESCRITURA, si el archivo tenia contenido lo borra y reescribe
+    if(archivo == NULL){ //Si no pudo abrir el archivo retorna null y retorna
+        return;
+    }
+    actual = listaJugadores; //Actual es igual a la cabeza de la lista
+    while(actual != NULL){
+        fprintf(archivo, "%s;%d;%d;%d;%d;%d\n", actual->nombre, actual->jugadas, actual->ganadas, actual->perdidas, actual->rachaActual, actual->rachaMaxima); //La funcion fprinf de stdio.h es el equivalente al printf pero escribiendo en un archivo
+        actual = actual->sig; //Avanza al nodo siguiente
+    }
+    fclose(archivo);
+}
+
+Jugador *elegirJugador(Jugador **listaJugadores){ //Esto es una funcion porque retorna un puntero a Jugador
+    char nombre[MAX_NOMBRE];
+    Jugador *actual; //Puntero auxiliar
+    Jugador *nuevo; //Puntero para añadir un jugador en caso que no exista
+    printf("Ingrese su nombre: ");
+    fgets(nombre, MAX_NOMBRE, stdin); //Se usa fgets en lugar del scanf proque el scanf corta la lectura en el espacio, si el jugador se llama "Juan Pablo" no lo leera
+    nombre[strcspn(nombre,"\n")] = '\0'; //El fgets guarda el espacio final de salto de linea "\n", entonces con strcspn cuenta la cantidad de caracteres en el primer parametro hasta que haya un caracter igual al segundo parametro "\n" y corta ahi, entonces tras encontrar el salto de linea corta el nombre y queda nombre[9]='\0' tras 9 caracteres termina los caracteres
+    actual = listaJugadores; //Actual es igual a la cabeza de la lista
+    while(actual != NULL){
+        if(strcmp(actual->nombre,nombre)==0){ //el srtcmp retorna 0 si son iguales u otro numero si NO son iguales
+            return actual; //Si lo encuentra retorna el jugador
+        }
+        actual = actual->sig; //Avanza al nodo siguiente si aun no lo encontro
+    }
+    nuevo = (Jugador *)malloc(sizeof(Jugador)); //Reservamos espacio en memoria para este jugador
+    if(nuevo == NULL){ //Verificamos que haya espacio para este jugador
+        return NULL;
+    }
+    strcpy(nuevo->nombre,nombre); //Usamos strcpy para poder recorrer y asignar el nombre ya que no podemos hacer simplemente "nuevo->nombre = nombre;"
+    nuevo->jugadas = 0;
+    nuevo->ganadas = 0;
+    nuevo->perdidas = 0;
+    nuevo->rachaActual = 0;
+    nuevo->rachaMaxima = 0;
+    nuevo->sig = *listaJugadores; //Insertamos al principio de la lista
+    *listaJugadores = nuevo; //La cabeza de la lista ahora es igual a "nuevo"
+    return nuevo;
+}

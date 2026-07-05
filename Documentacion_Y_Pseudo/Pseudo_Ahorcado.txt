@@ -1,5 +1,10 @@
 Importacion de librerias
-Importacion de modulos
+
+Declaracion de constantes
+
+Declaracion de Nodos
+
+Prototipado de procedimientos y funciones
 
 InicioPrograma{
     Inicializo variables globales
@@ -25,11 +30,7 @@ InicioPrograma{
                 Llamo al procedimiento AgregarPalabra()
             }
             menu=0{
-                Muestro mensaje preguntando si quiere salir
-                SI respuesta = Y or respuesta = y
-                    option=0
-                SI respuesta != Y or respuesta != y and respuesta != N or respuesta != n
-                    Muestro mensaje indicando error
+                Muestro mensaje indicando fin del programa
             }
             menu=default{
                 Muestro mensaje de eleccion Erronea en el menu
@@ -37,3 +38,5 @@ InicioPrograma{
         }
     }Mientras(option != 0)
 }FinPrograma
+
+Funcion

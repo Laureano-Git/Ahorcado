@@ -15,19 +15,12 @@
 //Jugador:
 typedef struct Jugador{ //Usamos typedef para poder usar el alias "Jugador" más adelante
     char nombre[MAX_NOMBRE];
-
     int jugadas;
-
     int ganadas;
-
     int perdidas;
-
     int rachaActual;
-
     int rachaMaxima;
-
     struct Jugador *sig; //Se convierte el registro en un nodo de una lista enlazada
-
 }Jugador;
 //Categorias:
 typedef struct Categoria{
@@ -54,7 +47,7 @@ int elegirDificultad(); //No se pasa parametro, únicamente retornara la dificul
 //Funcion elegir palabra
 char *seleccionarPalabra(Categoria categorias[], int categoria, int dificultad); //Retorna un puntero a Categorias en base a la categoria elegida y la dificultad
 //Procedimiento para la logia del ahorcado
-void jugar(Jugador *jugador, Categoria categorias[], int dificultad); //Se le pasa todo por copia ya que este procedimiento no modifica, es la logica del juego
+void jugar(Jugador *jugador, Categoria categorias[], int dificultad);
 //Procedimiento del dibujo
 void dibujarAhorcado(int errores); //Se pasa por copia
 //Procedimiento del ranking
@@ -67,24 +60,27 @@ void liberarLista(Jugador **listaJugadores); //Se pasa por referencia la cabeza 
 void limpiarBuffer(); //No se pasa parametro, únicamente limpia el buffer con un getchar
 //Procedimiento para inicializar las categorias
 void inicializarCategorias(Categoria categorias[]); //Se pasa por referencia el arreglo
+//Procedimiento para dibujar el ahorcado
+void mostrarAhorcado(int errores);
 
 //Cuerpo del programa
 int main(){
     Jugador *listaJugadores = NULL; //Creamos el puntero "listaJugadores" que apunta al primer nodo de la lista enlazada, primero en Null sin jugadores
+    Jugador *jugadorActual; //Puntero que guardara el jugador seleccionado
     //Categorias
     Categoria categorias[CANT_CATEGORIAS];
     //Variables flag
     int opcion;//Para el Menu
-    int categoriaElegida;//Para Categoria
     int dificultad;//Para Dificultad
+    char seguir;//Para que ingrese S/N si desea seguir jugando
+    int victoriasNivel; //Para llevar un registro de victorias consecutivas por Nivel
     //Inicializo 3 categorias y sus cantidades de palabras
     inicializarCategorias(categorias);
     //Inicializacion de numeros aleatorios
     srand(time(NULL)); //Usa la hora actual como semilla para generar secuencias de numeros aleatorios cada vez que se ejecuta el programa entonces no repite secuencias, el rand() genera secuencias random en base a la misma semilla entonces cada ejecucion creara la misma secuencia random
     //Carga de los archivos
-    /* Aquí se cargarán los jugadores */
-
-    /* Aquí se cargarán las palabras */
+    cargarJugadores(&listaJugadores);
+    cargarPalabras(categorias);
     do{
         printf("\n");
         printf("===== JUEGO DEL AHORCADO =====\n");
@@ -98,12 +94,37 @@ int main(){
         limpiarBuffer();
         switch(opcion){
         case 1:
+            jugadorActual = elegirJugador(&listaJugadores); //El puntero jugadorActual toma la posicion en memoria del jugador que retorna la funcion elegirJugador
+            dificultad = elegirDificultad(); //Elegimos dificultad
+            seguir = 'S'; //Empezamos el ciclo al menos una vez
+            victoriasNivel = 0; //Empezamos sin victorias consecutivas
+            while(seguir == 'S' || seguir == 's'){
+                jugar(jugadorActual, categorias, dificultad);
+                if(jugadorActual->rachaActual > 0){
+                    victoriasNivel++;
+                }else{
+                    victoriasNivel = 0;
+                }
+                if(victoriasNivel >= 2 && dificultad < 3){
+                    dificultad++;
+                    victoriasNivel = 0;
+                    printf("\nSubiste al nivel ");
+                    printf("%d", dificultad);
+                    printf("!\n");
+                }
+                printf("\nDesea jugar otra partida? (S/N): ");
+                scanf(" %c",&seguir);
+                limpiarBuffer();
+            }
             break;
         case 2:
+            agregarPalabra(categorias);
             break;
         case 3:
+            mostrarRanking(listaJugadores);
             break;
         case 4:
+            mostrarJugadores(listaJugadores);
             break;
         case 5:
             printf("Gracias por jugar.\n");
@@ -112,6 +133,8 @@ int main(){
             printf("Opcion incorrecta.\n");
         }
     }while(opcion != 5);
+    guardarJugadores(listaJugadores);
+    liberarLista(&listaJugadores);
     return 0;
 }
 
@@ -130,6 +153,195 @@ void inicializarCategorias(Categoria categorias[]){
         strcpy(categorias[i].nombre,nombres[i]);
         categorias[i].cantidad = 0;
     }
+}
+
+void agregarPalabra(Categoria categorias[]){
+    int categoria;
+    int i;
+    char palabra[MAX_PALABRA];
+    FILE *archivo;
+    categoria = elegirCategoria(categorias);
+    //Verificacion que la categoria no haya alcanzado la cantidad maxima de palabras
+    if(categorias[categoria].cantidad >= MAX_PALABRAS){
+        printf("La categoria esta completa.\n");
+        return;
+    }
+    printf("Ingrese la nueva palabra: ");
+    fgets(palabra, MAX_PALABRA, stdin);
+    palabra[strcspn(palabra,"\n")] = '\0'; //El usuario ingresa una palabra por ejemplo "gato" y el fgets lee "gato\n\0" con strcspn queda "gato\0"
+    //Validacion que la palabra no este repetida
+    for(i = 0; i < categorias[categoria].cantidad; i++){
+        if(strcmp(categorias[categoria].palabras[i], palabra) == 0){
+            printf("Esa palabra ya existe.\n");
+            return;
+        }
+    }
+    strcpy(categorias[categoria].palabras[categorias[categoria].cantidad],palabra); //Copia en el arreglo y al final de las palabras la "palabra"
+    categorias[categoria].cantidad++; //Incrementa la cantidad de palabras
+    switch(categoria){
+        case 0:
+            archivo = fopen("animales.txt","a"); //El parametro "a" significa "append" para agregar al final, sin borrar todo su contenido, diferente al "w"
+            break;
+        case 1:
+            archivo = fopen("paises.txt","a");
+            break;
+        case 2:
+            archivo = fopen("tecnologia.txt","a");
+            break;
+    }
+    //Verificacion que el archivo se haya encontrado
+    if(archivo == NULL){
+        printf("Error al abrir el archivo.\n");
+        return;
+    }
+    fprintf(archivo,"%s\n",palabra); //Escribe en el archivo abierto y al final la palabra
+    fclose(archivo); //Cierra el archivo
+    printf("Palabra agregada correctamente.\n");
+}
+
+void mostrarRanking(Jugador *lista){
+    Jugador *aux; //Puntero auxiliar para recoorrer la lista
+    Jugador ranking[100]; //Este arreglo contendra copias
+    Jugador temp;
+    int cantidad = 0; //Variable flas para llevar la cuenta de cuantos copiamos
+    aux = lista;
+    int i; 
+    int j;
+    while(aux != NULL){
+        ranking[cantidad] = *aux; //Copiamos en ranking toda la estructura de una vez
+        cantidad++;
+        aux = aux->sig;
+        //Algoritmo burbuja
+        for(i = 0; i < cantidad - 1; i++){
+            for(j = 0; j < cantidad - i - 1; j++){
+                if(ranking[j].rachaMaxima < ranking[j+1].rachaMaxima){
+                    temp = ranking[j];
+                    ranking[j] = ranking[j+1];
+                    ranking[j+1] = temp;
+                }
+            }
+        }
+    }
+    printf("\n===== RANKING =====\n");
+    printf("%-20s %-10s\n","Jugador","Racha");
+    for(i=0;i<cantidad;i++){
+        printf("%-20s %d\n",ranking[i].nombre,ranking[i].rachaMaxima);
+    }
+}
+
+void mostrarJugadores(Jugador *lista){
+    Jugador *aux;
+    aux = lista;
+    if(aux == NULL){
+        printf("No hay jugadores registrados.\n");
+        return;
+    }
+    printf("\n===== JUGADORES REGISTRADOS =====\n");
+    while(aux != NULL){
+        printf("Nombre: %s\n", aux->nombre);
+        printf("Jugadas: %d\n", aux->jugadas);
+        printf("Ganadas: %d\n", aux->ganadas);
+        printf("Perdidas: %d\n", aux->perdidas);
+        printf("Racha actual: %d\n", aux->rachaActual);
+        printf("Racha maxima: %d\n", aux->rachaMaxima);
+        printf("------------------------------\n");
+        aux = aux->sig;
+    }
+}
+
+void liberarLista(Jugador **listaJugadores){
+    Jugador *aux;
+    while(*listaJugadores != NULL){
+        aux = (*listaJugadores)->sig;
+        free(*listaJugadores);
+        *listaJugadores = aux;
+    }
+}
+
+void mostrarAhorcado(int errores){
+    switch(errores){
+        case 0:
+            printf(" +---+\n");
+            printf(" |   |\n");
+            printf(" |\n");
+            printf(" |\n");
+            printf(" |\n");
+            printf(" |\n");
+            printf("=========\n");
+            break;
+        case 1:
+            printf(" +---+\n");
+            printf(" |   |\n");
+            printf(" |   O\n");
+            printf(" |\n");
+            printf(" |\n");
+            printf(" |\n");
+            printf("=========\n");
+            break;
+        case 2:
+            printf(" +---+\n");
+            printf(" |   |\n");
+            printf(" |   O\n");
+            printf(" |   |\n");
+            printf(" |\n");
+            printf(" |\n");
+            printf("=========\n");
+            break;
+        case 3:
+            printf(" +---+\n");
+            printf(" |   |\n");
+            printf(" |   O\n");
+            printf(" |  /|\n");
+            printf(" |\n");
+            printf(" |\n");
+            printf("=========\n");
+            break;
+        case 4:
+            printf(" +---+\n");
+            printf(" |   |\n");
+            printf(" |   O\n");
+            printf(" |  /|\\\n");
+            printf(" |\n");
+            printf(" |\n");
+            printf("=========\n");
+            break;
+        case 5:
+            printf(" +---+\n");
+            printf(" |   |\n");
+            printf(" |   O\n");
+            printf(" |  /|\\\n");
+            printf(" |  /\n");
+            printf(" |\n");
+            printf("=========\n");
+            break;
+        case 6:
+            printf(" +---+\n");
+            printf(" |   |\n");
+            printf(" |   O\n");
+            printf(" |  /|\\\n");
+            printf(" |  / \\\n");
+            printf(" |\n");
+            printf("=========\n");
+            break;
+        case 7:
+            printf(" +---+\n");
+            printf(" |   |\n");
+            printf(" |  \\O\n");
+            printf(" |  /|\\\n");
+            printf(" |  / \\\n");
+            printf(" |\n");
+            printf("=========\n");
+            break;        
+        case 8:
+            printf(" +---+\n");
+            printf(" |   |\n");
+            printf(" |  \\O/\n");
+            printf(" |  /|\\\n");
+            printf(" |  / \\\n");
+            printf(" |\n");
+            printf("=========\n");
+            break;
+        }
 }
 
 void cargarPalabras(Categoria categorias[]){
@@ -186,7 +398,7 @@ void guardarJugadores(Jugador *listaJugadores){
     if(archivo == NULL){ //Si no pudo abrir el archivo retorna null y retorna
         return;
     }
-    actual = listaJugadores; //Actual es igual a la cabeza de la lista
+    actual = *listaJugadores; //Actual es igual a la cabeza de la lista
     while(actual != NULL){
         fprintf(archivo, "%s;%d;%d;%d;%d;%d\n", actual->nombre, actual->jugadas, actual->ganadas, actual->perdidas, actual->rachaActual, actual->rachaMaxima); //La funcion fprinf de stdio.h es el equivalente al printf pero escribiendo en un archivo
         actual = actual->sig; //Avanza al nodo siguiente
@@ -201,7 +413,7 @@ Jugador *elegirJugador(Jugador **listaJugadores){ //Esto es una funcion porque r
     printf("Ingrese su nombre: ");
     fgets(nombre, MAX_NOMBRE, stdin); //Se usa fgets en lugar del scanf proque el scanf corta la lectura en el espacio, si el jugador se llama "Juan Pablo" no lo leera
     nombre[strcspn(nombre,"\n")] = '\0'; //El fgets guarda el espacio final de salto de linea "\n", entonces con strcspn cuenta la cantidad de caracteres en el primer parametro hasta que haya un caracter igual al segundo parametro "\n" y corta ahi, entonces tras encontrar el salto de linea corta el nombre y queda nombre[9]='\0' tras 9 caracteres termina los caracteres
-    actual = listaJugadores; //Actual es igual a la cabeza de la lista
+    actual = *listaJugadores; //Actual es igual a la cabeza de la lista
     while(actual != NULL){
         if(strcmp(actual->nombre,nombre)==0){ //el srtcmp retorna 0 si son iguales u otro numero si NO son iguales
             return actual; //Si lo encuentra retorna el jugador
@@ -221,4 +433,178 @@ Jugador *elegirJugador(Jugador **listaJugadores){ //Esto es una funcion porque r
     nuevo->sig = *listaJugadores; //Insertamos al principio de la lista
     *listaJugadores = nuevo; //La cabeza de la lista ahora es igual a "nuevo"
     return nuevo;
+}
+
+int elegirCategoria(Categoria categorias[]){
+    int opcion;
+    int i;
+    printf("\n===== CATEGORIAS =====\n");
+    for(i = 0; i < CANT_CATEGORIAS; i++){
+        printf("%d. %s\n", i + 1, categorias[i].nombre);
+    }
+    do{
+        printf("Seleccione una categoria: ");
+        scanf("%d", &opcion);
+        limpiarBuffer();
+        if(opcion < 1 || opcion > 3){
+            printf("Categoria invalida.\n");
+        }
+    }while(opcion < 1 || opcion > 3);
+    return opcion - 1;
+}
+
+int elegirDificultad(){
+    int opcion;
+    printf("\n===== DIFICULTAD =====\n");
+    printf("1. Facil\n");
+    printf("2. Media\n");
+    printf("3. Dificil\n");
+    do{
+        printf("Seleccione una dificultad: ");
+        scanf("%d",&opcion);
+        limpiarBuffer();
+        if(opcion < 1 || opcion > 3){
+            printf("Dificultad invalida.\n");
+        }
+    }while(opcion < 1 || opcion > 3);
+    return opcion;
+}
+
+char *seleccionarPalabra(Categoria categorias[], int categoria, int dificultad){
+    int longitudMinima;
+    int i;
+    int posiciones[MAX_PALABRAS];
+    int cantidad = 0;
+    int elegida;
+    switch(dificultad){
+        case 1:
+            longitudMinima = 4;
+            break;
+        case 2:
+            longitudMinima = 6;
+            break;
+        case 3:
+            longitudMinima = 8;
+            break;
+    }
+    for(i = 0; i < categorias[categoria].cantidad; i++){
+        if(strlen(categorias[categoria].palabras[i]) >= longitudMinima){ //srtlen obtiene la cantidad de caracteres y compara la palabra en la posocon i con nombre categoria del arreglo de categorias con la longitudMinina
+            posiciones[cantidad] = i; //Posiciones agrega la posicion == i porque la palabra cumple el minimo de la dificultad
+            cantidad++; //Incrementamos cantidad porque encontramos una palabra
+        }
+    }
+    if(cantidad == 0){ //Verificacion en caso que no encontremos ninguna palabra que cumpla la cantidad
+        return NULL;
+    }
+    elegida = rand() % cantidad; //Elige un numero random de 0 a cantidad - 1 (esto pasa por el %), por ejemplo si cantidad es 4 elige de manera random de 0 a 3
+    return categorias[categoria].palabras[posiciones[elegida]]; //Retorna la palabra de "categoria" segun la lista "posiciones" en la posicion "elegida"
+}
+
+void jugar(Jugador *jugador, Categoria categorias[], int dificultad){
+    char *palabra; //Aca guardamos la palabra, pero no la copia, solo apunta a ella
+    char oculta[MAX_PALABRA]; //Esta variable es la que ve el usuario
+    char letra; //La letra que ingresara el usuario
+    char letrasUsadas[MAX_LETRAS]; //Aca guardamos las letras usadas
+    int cantidadLetras = 0; //Cuenta la cantidad de letras que fue ingresando el usuario, siempre inicia en 0
+    int errores = 0; //Siempre se inicia los errores en 0 para ir aumentando con un tope segun la dificultad
+    int erroresMaximos; //El valor dependera de la dificultad
+    int categoria; //dentro del juego preguntamos la categoria
+    int i; //Variable para recorrer los arreglos
+    int longitud; //Variable en la que guardaremos la cantidad de caracteres de la palabra
+    int acierto; //Variable flag, si es parte de la palabra =1 si no =0
+    int repetida; //Variable flag, si encuentra la letra =1 si no la encuentra =0
+
+    categoria = elegirCategoria(categorias); //Ahora sabremos donde buscar la palabra
+    palabra = seleccionarPalabra(categorias, categoria, dificultad); //Ahora elegimos la palabra
+    if(palabra == NULL){ //Verificacion que la palabra exista 
+        printf("No hay palabras para esa dificultad.\n");
+        return;
+    }
+    longitud = strlen(palabra);
+    switch(dificultad){
+        case 1:
+            erroresMaximos = 8;
+            break;
+        case 2:
+            erroresMaximos = 6;
+            break;
+        case 3:
+            erroresMaximos = 4;
+            break;
+    }
+    for(i = 0; i < longitud; i++){
+        oculta[i] = '_'; //Guardara en la variable _ por cada caracter que tenga la palabra
+    }
+    oculta[longitud] = '\0'; //Cerramos la cadena al final para evitar que despues el printf("%s") no se quede leyendo infinitamente porque no encuentra el final de string (que es el \0)
+
+    while(errores < erroresMaximos && strcmp(palabra, oculta) != 0){
+        printf("\n");
+        mostrarAhorcado(errores);
+        printf("Errores: %d/%d\n", errores, erroresMaximos);
+        printf("Palabra: ");
+        for(i = 0; i < longitud; i++){ //Este FOR es para mostrar "_ _ _ _" en lugar de "____"
+            printf("%c ", oculta[i]); //Imprimimos el caracter en la posicion i y hacemos un espacio
+        }
+        printf("\n");
+        
+        printf("Letras usadas: ");
+        for(i = 0; i < cantidadLetras; i++){
+            printf("%c ", letrasUsadas[i]);
+        }
+        printf("\n");
+        
+        printf("Ingrese una letra: ");
+        scanf(" %c",&letra); //El espacio delante del %c es para que scanf ignore cualquier espacio que haya quedado en el buffer antes de leer el caracter
+        limpiarBuffer();
+        
+        //Seccion para controlar letras ya ingresadas y avisar al jugador si repite una letra
+        repetida = 0; //Se pone en 0 porque por cada letra ingresada suponemos que no esta repetida
+        for(i = 0; i < cantidadLetras; i++){
+            if(letrasUsadas[i] == letra){
+                repetida = 1;
+                break;//Este break corta las iteracones del for
+            }
+        }
+        if(repetida){
+            printf("Esa letra ya fue ingresada.\n");
+            continue; //Este continue es para regresar al principio del while ignorando todo lo que siga
+        }
+
+        letrasUsadas[cantidadLetras] = letra;
+        cantidadLetras++;
+
+        //Seccion para ver si encontramos un acierto
+        acierto = 0;
+        for(i = 0; i < longitud; i++){
+            if(palabra[i] == letra){
+                oculta[i] = letra;
+                acierto = 1;
+            }
+        }
+        if(acierto == 0){
+            errores++;
+            printf("La letra no esta en la palabra.\n");
+        }else{
+            printf("Correcto!\n");
+        }
+    }
+    //Mostramos como va el dibujo
+    mostrarAhorcado(errores);
+    //Caso de fin del while por victoria
+    if(strcmp(palabra, oculta) == 0){
+        printf("\n¡Felicitaciones!\n");
+        printf("Adivinaste la palabra: %s\n", palabra);
+        jugador->jugadas++;
+        jugador->ganadas++;
+        jugador->rachaActual++;
+        if(jugador->rachaActual > jugador->rachaMaxima){
+            jugador->rachaMaxima = jugador->rachaActual;
+        }
+    }else{
+        printf("\nPerdiste.\n");
+        printf("La palabra era: %s\n", palabra);
+        jugador->jugadas++;
+        jugador->perdidas++;
+        jugador->rachaActual = 0;
+    }
 }
